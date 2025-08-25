@@ -141,27 +141,58 @@ def generate_html_email_body(image_files=None):
             <p>以下是本次分析生成的关键图表：</p>
         """
 
-        for i, img_path in enumerate(image_files):
-            img_name = os.path.basename(img_path)
-            # 根据文件名生成描述
-            if "combined_analysis" in img_name:
-                if "周线" in img_name:
-                    desc = "周线综合分析结果"
-                elif "日线" in img_name:
-                    desc = "日线综合分析结果"
-                else:
-                    desc = "综合分析结果"
-            else:
-                desc = "分析结果"
+        # 创建左右排列的图片布局
+        if len(image_files) >= 2:
+            # 第一行：两张图片左右排列
+            images_html += """
+            <div class="image-row">
+            """
 
-            # 添加图片到HTML中
-            images_html += f"""
-            <div class="image-container">
-                <h3>{desc}</h3>
-                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
-                <p class="image-caption">文件名: {img_name}</p>
+            for i in range(min(2, len(image_files))):
+                img_path = image_files[i]
+                img_name = os.path.basename(img_path)
+                if "combined_analysis" in img_name:
+                    if "Weekly" in img_name:
+                        desc = "Weekly Analysis"
+                    elif "Daily" in img_name:
+                        desc = "Daily Analysis"
+                    else:
+                        desc = "Analysis"
+                else:
+                    desc = "Analysis"
+
+                images_html += f"""
+                <div class="image-container">
+                    <h3>{desc}</h3>
+                    <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                    <p class="image-caption">文件名: {img_name}</p>
+                </div>
+                """
+
+            images_html += """
             </div>
             """
+        else:
+            # 如果只有一张图片，使用原来的布局
+            for i, img_path in enumerate(image_files):
+                img_name = os.path.basename(img_path)
+                if "combined_analysis" in img_name:
+                    if "Weekly" in img_name:
+                        desc = "Weekly Analysis"
+                    elif "Daily" in img_name:
+                        desc = "Daily Analysis"
+                    else:
+                        desc = "Analysis"
+                else:
+                    desc = "Analysis"
+
+                images_html += f"""
+                <div class="image-container">
+                    <h3>{desc}</h3>
+                    <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                    <p class="image-caption">文件名: {img_name}</p>
+                </div>
+                """
 
     html_body = f"""
     <!DOCTYPE html>
@@ -199,8 +230,14 @@ def generate_html_email_body(image_files=None):
                 border-radius: 5px;
                 border-left: 4px solid #3498db;
             }}
-            .image-container {{
+            .image-row {{
+                display: flex;
+                justify-content: space-between;
+                gap: 20px;
                 margin: 20px 0;
+            }}
+            .image-container {{
+                flex: 1;
                 padding: 15px;
                 background-color: #f8f9fa;
                 border-radius: 5px;
@@ -230,38 +267,11 @@ def generate_html_email_body(image_files=None):
     <body>
         <div class="header">
             <h1>📊 金融数据分析报告</h1>
-            <p>生成时间: {current_time}</p>
+            <p>{current_time}</p>
         </div>
         
         <div class="content">
-            <h2>🎯 分析概述</h2>
-            <p>今日的金融数据分析已完成，包含以下内容：</p>
-            
-            <div class="analysis-section">
-                <h3>📈 FFT分析</h3>
-                <p>对指定股票进行快速傅里叶变换分析，识别周期性模式和频率特征。</p>
-            </div>
-            
-            <div class="analysis-section">
-                <h3>🔄 相关性分析</h3>
-                <p>分析股票与指数的相关性，使用柯西分布模型进行深度分析。</p>
-            </div>
-            
             {images_html}
-            
-            <h2>📁 文件说明</h2>
-            <p>分析结果已保存到 <code>analysis_results/</code> 目录中，您可以：</p>
-            <ul>
-                <li>查看邮件中的关键图表</li>
-                <li>访问服务器上的完整结果目录</li>
-                <li>根据分析结果制定投资策略</li>
-            </ul>
-        </div>
-        
-        <div class="footer">
-            <p><strong>金融数据分析系统</strong></p>
-            <p>报告生成时间: {current_time}</p>
-            <p>如有问题，请查看日志文件或联系管理员</p>
         </div>
     </body>
     </html>
@@ -310,12 +320,25 @@ def send_analysis_email():
                 if image_files:
                     # 选择主要的图片嵌入到邮件正文中
                     main_images = []
+
+                    # 分别选择日线和周线的综合趋势分析图
+                    daily_images = []
+                    weekly_images = []
+
                     for img in image_files:
-                        # 只选择日线和周线的总和分析结果
                         if "combined_analysis" in img.lower():
-                            main_images.append(img)
-                        if len(main_images) >= 2:  # 选择2个总和分析图片（日线和周线）
-                            break
+                            if "Daily" in img:
+                                daily_images.append(img)
+                            elif "Weekly" in img:
+                                weekly_images.append(img)
+
+                    # 选择最新的图片（按文件名排序，选择最后一个）
+                    if daily_images:
+                        daily_images.sort()
+                        main_images.append(daily_images[-1])
+                    if weekly_images:
+                        weekly_images.sort()
+                        main_images.append(weekly_images[-1])
 
                     if main_images:
                         logging.info(

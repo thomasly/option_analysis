@@ -18,21 +18,21 @@ class TushareConfig:
 
 @dataclass
 class FFTConfig:
-    """FFT分析配置"""
+    """FFT analysis configuration"""
 
-    # 默认分析的股票代码列表
+    # Default list of stock codes for analysis
     default_stock_codes: List[str] = field(default_factory=lambda: ["399006.SZ"])
 
-    # FFT分析参数
-    analysis_years: int = int(os.getenv("FFT_ANALYSIS_YEARS", "15"))  # 分析年数
-    num_components: int = int(os.getenv("FFT_NUM_COMPONENTS", "6"))  # 周期成分数量
+    # FFT analysis parameters
+    analysis_years: int = int(os.getenv("FFT_ANALYSIS_YEARS", "15"))  # Number of analysis years
+    num_components: int = int(os.getenv("FFT_NUM_COMPONENTS", "6"))  # Number of periodic components
 
-    # 分析频率
+    # Analysis frequencies
     frequencies: List[tuple] = field(
-        default_factory=lambda: [("D", "日线"), ("W", "周线")]
+        default_factory=lambda: [("D", "Daily"), ("W", "Weekly")]
     )
 
-    # 是否启用FFT分析
+    # Whether to enable FFT analysis
     enable_fft_analysis: bool = (
         os.getenv("ENABLE_FFT_ANALYSIS", "true").lower() == "true"
     )
@@ -40,7 +40,7 @@ class FFTConfig:
 
 @dataclass
 class CorrelationConfig:
-    """相关性分析配置"""
+    """Correlation analysis configuration"""
 
     index_code: str = "399006.SZ"
     years: int = 2
@@ -59,13 +59,13 @@ class CorrelationConfig:
 
 @dataclass
 class AnalysisConfig:
-    """分析模块主配置"""
+    """Main configuration for analysis modules"""
 
     tushare: TushareConfig = field(default_factory=TushareConfig)
     fft: FFTConfig = field(default_factory=FFTConfig)
     correlation: CorrelationConfig = field(default_factory=CorrelationConfig)
 
-    # 运行配置
+    # Run configuration
     data_dir: str = "data"
     output_dir: str = "analysis_results"
     log_level: str = "INFO"

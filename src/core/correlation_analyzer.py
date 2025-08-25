@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from typing import Dict
 
 from .quantum_model import QuantumModel
+from .font_config import setup_chinese_font
+
+# 设置中文字体
+setup_chinese_font()
 
 
 @dataclass
