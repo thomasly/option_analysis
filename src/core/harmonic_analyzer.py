@@ -6,9 +6,12 @@
 
 import os
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from datetime import datetime
 from scipy.optimize import curve_fit
+from scipy.stats import percentileofscore
 
 from .data_fetcher import DataFetcher
 
@@ -52,41 +55,93 @@ class HarmonicAnalyzer:
         """
         return a * x + (b * x + c) * np.sin(k * x + q) + d
 
-    def _plot_harmonic_fit(self, params, df, offset=100):
-        """绘制谐波拟合结果"""
-
-        fig, axes = plt.subplots(2, 1, figsize=(16, 12))
-
+    def _prepare_plot_data(self, params, df, offset, freq):
+        """计算绘图所需的序列与统计指标"""
         x = np.linspace(0, len(df), len(df))
         x1 = np.linspace(0, len(df) + offset, len(df) + offset)
         y = df.close
         y1 = self.objective_function(x1, *params)
 
+        dates = pd.to_datetime(df["trade_date"])
+
+        # 添加额外的天数，用于画拟合的曲线图
+        extra = len(x1) - len(df)
+        future_dates = pd.date_range(
+            start=dates.iloc[-1] + pd.Timedelta(days=1),  # 或 freq='W'
+            periods=extra,
+            freq=freq,  # 根据数据频率改成 'W', 'B' 等
+        )
+
+        full_dates = pd.concat(
+            [dates, pd.Series(future_dates)],
+            ignore_index=True,
+        )
+
+        diffs = y - y1[:-offset]
+        curr_diff = diffs.iloc[-1]
+        percentile = percentileofscore(diffs, curr_diff, kind="rank")
+        mean_diff = np.mean(diffs)
+        std_diff = np.std(diffs)
+
+        return {
+            "dates": dates,
+            "full_dates": full_dates,
+            "y": y,
+            "y1": y1,
+            "diffs": diffs,
+            "stats": {
+                "mean": mean_diff,
+                "std": std_diff,
+                "curr": curr_diff,
+                "percentile": percentile,
+            },
+        }
+
+    def _plot_harmonic_fit(self, params, df, offset=100, freq="D"):
+        """绘制谐波拟合结果"""
+
+        data = self._prepare_plot_data(params, df, offset, freq)
+        dates = data["dates"]
+        full_dates = data["full_dates"]
+        y = data["y"]
+        y1 = data["y1"]
+        diffs = data["diffs"]
+        stats = data["stats"]
+
+        fig, axes = plt.subplots(2, 1, figsize=(16, 12))
+        fig.subplots_adjust(hspace=0.15)
+
         # 子图1：完整拟合结果
-        axes[0].plot(x, y, label="Close prices")
-        axes[0].plot(x1, y1, label="fit")
+        axes[0].plot(dates, y, label="Close prices")
+        axes[0].plot(full_dates, y1, label="fit")
         axes[0].legend()
-        axes[0].tick_params(labelbottom=False)
+        axes[0].xaxis.set_major_locator(mdates.YearLocator(1))
+        axes[0].xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+        axes[0].set_ylabel(f"{self.stock_code} index")
         xmin, xmax = axes[0].get_xlim()
         # axes[0].title("Price trend prediction")
 
         # 子图2：残差分析
-        diffs = y - y1[:-offset]
-        axes[1].plot(x, diffs)
-        mean_diff = np.mean(diffs)
-        std_diff = np.std(diffs)
-        axes[1].set_xlim(xmin, xmax)
+        axes[1].plot(dates, diffs)
         axes[1].set_xlabel("x")
         axes[1].set_ylabel("diff")
         # axes[1].title("Differences between prices and fit")
         axes[1].text(
-            0.04 * len(x),  # x coordinate (5% of x-axis)
-            max(diffs),  # y coordinate (top of diffs)
-            f"mean: {mean_diff:.4f}\nstd: {std_diff:.4f}",
+            0.02,
+            0.98,  # 相对于轴的 2%/98% 位置
+            f"mean: {stats['mean']:.4f}\nstd: {stats['std']:.4f}\n"
+            f"curr_diff: {stats['curr']:.4f}\n"
+            f"curr_diff/std: {stats['curr']/stats['std']:.4f}\n"
+            f"percentile: {stats['percentile']:.4f}",
+            transform=axes[1].transAxes,  # 使用 [0,1] 轴坐标，而不是数据坐标
             fontsize=10,
-            verticalalignment="top",
+            va="top",
+            ha="left",
             bbox=dict(facecolor="white", alpha=0.6, edgecolor="none"),
         )
+        axes[1].set_xlim(xmin, xmax)  # 让下图沿用同一日期范围
+        axes[1].xaxis.set_major_locator(mdates.YearLocator())
+        axes[1].xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
 
         # fig.tight_layout()
 
@@ -140,7 +195,7 @@ class HarmonicAnalyzer:
                 offset = 500
             params, _ = curve_fit(self.objective_function, x, y, p0=p0)
             a, b, c, k, q, d = params
-            self._plot_harmonic_fit(params, df, offset=offset)
+            self._plot_harmonic_fit(params, df, offset=offset, freq=freq)
             print(f"\n{freq_label} harmonic analysis completed!")
             print(
                 f"Analysis result: {a:.2f} * x + ({b:.2f} * x + {c:.2f}) * "
