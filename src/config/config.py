@@ -24,8 +24,12 @@ class FFTConfig:
     default_stock_codes: List[str] = field(default_factory=lambda: ["399006.SZ"])
 
     # FFT analysis parameters
-    analysis_years: int = int(os.getenv("FFT_ANALYSIS_YEARS", "15"))  # Number of analysis years
-    num_components: int = int(os.getenv("FFT_NUM_COMPONENTS", "6"))  # Number of periodic components
+    analysis_years: int = int(
+        os.getenv("FFT_ANALYSIS_YEARS", "15")
+    )  # Number of analysis years
+    num_components: int = int(
+        os.getenv("FFT_NUM_COMPONENTS", "6")
+    )  # Number of periodic components
 
     # Analysis frequencies
     frequencies: List[tuple] = field(
@@ -58,12 +62,48 @@ class CorrelationConfig:
 
 
 @dataclass
+class AlexNetConfig:
+    """AlexNet模型配置"""
+
+    # 模型参数
+    input_size: int = 16  # 输入图像尺寸 16x16
+    num_classes: int = 10  # 分类数量
+    dropout_rate: float = 0.5
+
+    # 训练参数
+    batch_size: int = int(os.getenv("ALEXNET_BATCH_SIZE", "32"))
+    learning_rate: float = float(os.getenv("ALEXNET_LEARNING_RATE", "0.001"))
+    num_epochs: int = int(os.getenv("ALEXNET_NUM_EPOCHS", "100"))
+    weight_decay: float = float(os.getenv("ALEXNET_WEIGHT_DECAY", "1e-4"))
+
+    # 数据参数
+    train_split: float = 0.8  # 训练集比例
+    val_split: float = 0.1  # 验证集比例
+    test_split: float = 0.1  # 测试集比例
+
+    # 保存路径
+    model_save_dir: str = "models"
+    checkpoint_dir: str = "checkpoints"
+    log_dir: str = "logs"
+
+    # 设备配置
+    device: str = (
+        "cuda" if os.getenv("CUDA_AVAILABLE", "true").lower() == "true" else "cpu"
+    )
+
+    # 早停参数
+    patience: int = 10  # 早停耐心值
+    min_delta: float = 0.001  # 最小改善阈值
+
+
+@dataclass
 class AnalysisConfig:
     """Main configuration for analysis modules"""
 
     tushare: TushareConfig = field(default_factory=TushareConfig)
     fft: FFTConfig = field(default_factory=FFTConfig)
     correlation: CorrelationConfig = field(default_factory=CorrelationConfig)
+    alexnet: AlexNetConfig = field(default_factory=AlexNetConfig)
 
     # Run configuration
     data_dir: str = "data"

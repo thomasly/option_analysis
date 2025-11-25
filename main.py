@@ -8,6 +8,7 @@ import argparse
 import logging
 from src.config import AnalysisConfig
 from src.core import FFTAnalyzer, CauchyCorrelationAnalyzer, CorrelationAnalysisConfig
+from src.core.harmonic_analyzer import HarmonicAnalyzer
 
 
 def setup_logging(level: str = "INFO"):
@@ -28,6 +29,20 @@ def run_fft_analysis(config: AnalysisConfig):
             stock_code=stock_code,
             years=config.fft.analysis_years,
             num_components=config.fft.num_components,
+        )
+        analyzer.analyze(config.fft.frequencies)
+
+
+def run_harmonic_analysis(config: AnalysisConfig):
+    """运行谐波分析"""
+    print("开始谐波分析...")
+
+    for stock_code in config.fft.default_stock_codes:
+        print(f"\n分析股票代码: {stock_code}")
+        analyzer = HarmonicAnalyzer(
+            stock_code=stock_code,
+            years=config.fft.analysis_years,
+            num_harmonics=5,  # 默认使用5个谐波
         )
         analyzer.analyze(config.fft.frequencies)
 
@@ -61,9 +76,9 @@ def main():
     parser = argparse.ArgumentParser(description="金融数据分析模块")
     parser.add_argument(
         "--analysis-type",
-        choices=["fft", "correlation", "all"],
+        choices=["fft", "harmonic", "correlation", "all"],
         default="all",
-        help="分析类型: fft(FFT分析), correlation(相关性分析), all(全部)",
+        help="分析类型: fft(FFT分析), harmonic(谐波分析), correlation(相关性分析), all(全部)",
     )
     parser.add_argument(
         "--log-level",
@@ -83,10 +98,13 @@ def main():
     # 根据参数运行相应的分析
     if args.analysis_type == "fft":
         run_fft_analysis(config)
+    elif args.analysis_type == "harmonic":
+        run_harmonic_analysis(config)
     elif args.analysis_type == "correlation":
         run_correlation_analysis(config)
     elif args.analysis_type == "all":
         run_fft_analysis(config)
+        run_harmonic_analysis(config)
         run_correlation_analysis(config)
 
     print("\n分析完成！")
