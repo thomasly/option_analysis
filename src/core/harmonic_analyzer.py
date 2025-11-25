@@ -147,8 +147,10 @@ class HarmonicAnalyzer:
 
         # 保存图像
         timestamp = datetime.now().strftime("%Y%m%d")
+        freq_label = "Daily" if freq == "D" else "Weekly"
         output_path = os.path.join(
-            self.output_dir, f"{timestamp}_{self.stock_code}_harmonic_analysis.png"
+            self.output_dir,
+            f"{timestamp}_{self.stock_code}_{freq_label}_harmonic_analysis.png",
         )
         fig.savefig(output_path, dpi=200, bbox_inches="tight")
         print(f"Harmonic analysis chart saved to: {output_path}")
