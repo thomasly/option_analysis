@@ -12,10 +12,14 @@ import json
 import os
 import glob
 from datetime import datetime
-from pathlib import Path
 from dotenv import load_dotenv
 from src.config import AnalysisConfig
-from src.core import FFTAnalyzer, CauchyCorrelationAnalyzer, CorrelationAnalysisConfig
+from src.core import (
+    FFTAnalyzer,
+    # CauchyCorrelationAnalyzer,
+    # CorrelationAnalysisConfig,
+    HarmonicAnalyzer,
+)
 from src.email_sender import EmailSender
 
 
@@ -82,28 +86,41 @@ def run_fft_analysis(config: AnalysisConfig):
         analyzer.analyze(config.fft.frequencies)
 
 
-def run_correlation_analysis(config: AnalysisConfig):
-    """运行相关性分析"""
-    logging.info("开始相关性分析...")
+def run_harmonic_analysis(config: AnalysisConfig):
+    """运行FFT分析"""
+    logging.info("开始FFT分析...")
 
-    correlation_config = CorrelationAnalysisConfig(
-        index_code=config.correlation.index_code,
-        years=config.correlation.years,
-        freq=config.correlation.freq,
-        n_days=config.correlation.n_days,
-        start_idx=config.correlation.start_idx,
-        x_min=config.correlation.x_min,
-        x_max=config.correlation.x_max,
-        n_centers=config.correlation.n_centers,
-        n_gammas=config.correlation.n_gammas,
-        gamma_min=config.correlation.gamma_min,
-        gamma_max=config.correlation.gamma_max,
-        analysis_dir=config.correlation.analysis_dir,
-        index_power=config.correlation.index_power,
-    )
+    for stock_code in config.harmonic.default_stock_codes:
+        logging.info(f"分析股票代码: {stock_code}")
+        analyzer = HarmonicAnalyzer(
+            stock_code=stock_code,
+            years=config.harmonic.analysis_years,
+        )
+        analyzer.analyze(config.harmonic.frequencies)
 
-    analyzer = CauchyCorrelationAnalyzer(correlation_config)
-    analyzer.run()
+
+# def run_correlation_analysis(config: AnalysisConfig):
+#     """运行相关性分析"""
+#     logging.info("开始相关性分析...")
+
+#     correlation_config = CorrelationAnalysisConfig(
+#         index_code=config.correlation.index_code,
+#         years=config.correlation.years,
+#         freq=config.correlation.freq,
+#         n_days=config.correlation.n_days,
+#         start_idx=config.correlation.start_idx,
+#         x_min=config.correlation.x_min,
+#         x_max=config.correlation.x_max,
+#         n_centers=config.correlation.n_centers,
+#         n_gammas=config.correlation.n_gammas,
+#         gamma_min=config.correlation.gamma_min,
+#         gamma_max=config.correlation.gamma_max,
+#         analysis_dir=config.correlation.analysis_dir,
+#         index_power=config.correlation.index_power,
+#     )
+
+#     analyzer = CauchyCorrelationAnalyzer(correlation_config)
+#     analyzer.run()
 
 
 def run_daily_analysis():
@@ -115,8 +132,9 @@ def run_daily_analysis():
         config = AnalysisConfig()
 
         # 运行所有分析
-        run_fft_analysis(config)
-        run_correlation_analysis(config)
+        # run_fft_analysis(config)
+        # run_correlation_analysis(config)
+        run_harmonic_analysis(config)
 
         logging.info("每日分析任务完成！")
 
@@ -151,13 +169,10 @@ def generate_html_email_body(image_files=None):
             for i in range(min(2, len(image_files))):
                 img_path = image_files[i]
                 img_name = os.path.basename(img_path)
-                if "combined_analysis" in img_name:
-                    if "Weekly" in img_name:
-                        desc = "Weekly Analysis"
-                    elif "Daily" in img_name:
-                        desc = "Daily Analysis"
-                    else:
-                        desc = "Analysis"
+                if "Weekly" in img_name:
+                    desc = "Weekly Analysis"
+                elif "Daily" in img_name:
+                    desc = "Daily Analysis"
                 else:
                     desc = "Analysis"
 
@@ -176,13 +191,10 @@ def generate_html_email_body(image_files=None):
             # 如果只有一张图片，使用原来的布局
             for i, img_path in enumerate(image_files):
                 img_name = os.path.basename(img_path)
-                if "combined_analysis" in img_name:
-                    if "Weekly" in img_name:
-                        desc = "Weekly Analysis"
-                    elif "Daily" in img_name:
-                        desc = "Daily Analysis"
-                    else:
-                        desc = "Analysis"
+                if "Weekly" in img_name:
+                    desc = "Weekly Analysis"
+                elif "Daily" in img_name:
+                    desc = "Daily Analysis"
                 else:
                     desc = "Analysis"
 
@@ -326,11 +338,10 @@ def send_analysis_email():
                     weekly_images = []
 
                     for img in image_files:
-                        if "combined_analysis" in img.lower():
-                            if "Daily" in img:
-                                daily_images.append(img)
-                            elif "Weekly" in img:
-                                weekly_images.append(img)
+                        if "Daily" in img:
+                            daily_images.append(img)
+                        elif "Weekly" in img:
+                            weekly_images.append(img)
 
                     # 选择最新的图片（按文件名排序，选择最后一个）
                     if daily_images:

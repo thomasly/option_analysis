@@ -43,6 +43,25 @@ class FFTConfig:
 
 
 @dataclass
+class HarmonicConfig:
+    # Default list of stock codes for analysis
+    default_stock_codes: List[str] = field(default_factory=lambda: ["399006.SZ"])
+
+    # FFT analysis parameters
+    analysis_years: int = int(os.getenv("FFT_ANALYSIS_YEARS", "15"))
+
+    # Analysis frequencies
+    frequencies: List[tuple] = field(
+        default_factory=lambda: [("D", "Daily"), ("W", "Weekly")]
+    )
+
+    # Whether to enable FFT analysis
+    enable_harmonic_analysis: bool = (
+        os.getenv("ENABLE_HARMONIC_ANALYSIS", "true").lower() == "true"
+    )
+
+
+@dataclass
 class CorrelationConfig:
     """Correlation analysis configuration"""
 
@@ -104,6 +123,7 @@ class AnalysisConfig:
     fft: FFTConfig = field(default_factory=FFTConfig)
     correlation: CorrelationConfig = field(default_factory=CorrelationConfig)
     alexnet: AlexNetConfig = field(default_factory=AlexNetConfig)
+    harmonic: HarmonicConfig = field(default_factory=HarmonicConfig)
 
     # Run configuration
     data_dir: str = "data"
