@@ -14,12 +14,7 @@ import glob
 from datetime import datetime
 from dotenv import load_dotenv
 from src.config import AnalysisConfig
-from src.core import (
-    FFTAnalyzer,
-    # CauchyCorrelationAnalyzer,
-    # CorrelationAnalysisConfig,
-    HarmonicAnalyzer,
-)
+from src.core import HarmonicAnalyzer, ProbabilityAnalyzer
 from src.email_sender import EmailSender
 
 
@@ -72,23 +67,9 @@ def get_latest_analysis_images():
         return []
 
 
-def run_fft_analysis(config: AnalysisConfig):
-    """运行FFT分析"""
-    logging.info("开始FFT分析...")
-
-    for stock_code in config.fft.default_stock_codes:
-        logging.info(f"分析股票代码: {stock_code}")
-        analyzer = FFTAnalyzer(
-            stock_code=stock_code,
-            years=config.fft.analysis_years,
-            num_components=config.fft.num_components,
-        )
-        analyzer.analyze(config.fft.frequencies)
-
-
 def run_harmonic_analysis(config: AnalysisConfig):
-    """运行FFT分析"""
-    logging.info("开始FFT分析...")
+    """运行谐波分析"""
+    logging.info("开始谐波分析...")
 
     for stock_code in config.harmonic.default_stock_codes:
         logging.info(f"分析股票代码: {stock_code}")
@@ -99,28 +80,36 @@ def run_harmonic_analysis(config: AnalysisConfig):
         analyzer.analyze(config.harmonic.frequencies)
 
 
-# def run_correlation_analysis(config: AnalysisConfig):
-#     """运行相关性分析"""
-#     logging.info("开始相关性分析...")
-
-#     correlation_config = CorrelationAnalysisConfig(
-#         index_code=config.correlation.index_code,
-#         years=config.correlation.years,
-#         freq=config.correlation.freq,
-#         n_days=config.correlation.n_days,
-#         start_idx=config.correlation.start_idx,
-#         x_min=config.correlation.x_min,
-#         x_max=config.correlation.x_max,
-#         n_centers=config.correlation.n_centers,
-#         n_gammas=config.correlation.n_gammas,
-#         gamma_min=config.correlation.gamma_min,
-#         gamma_max=config.correlation.gamma_max,
-#         analysis_dir=config.correlation.analysis_dir,
-#         index_power=config.correlation.index_power,
-#     )
-
-#     analyzer = CauchyCorrelationAnalyzer(correlation_config)
-#     analyzer.run()
+def run_probability_analysis(config: AnalysisConfig):
+    """运行概率转移矩阵分析"""
+    logging.info("开始概率转移矩阵分析...")
+    
+    # 存储所有分析结果
+    probability_results = []
+    
+    for stock_code in config.harmonic.default_stock_codes:
+        logging.info(f"分析股票代码: {stock_code}")
+        analyzer = ProbabilityAnalyzer(
+            stock_code=stock_code,
+            years=config.harmonic.analysis_years,
+        )
+        
+        # 执行分析
+        result = analyzer.analyze()
+        
+        # 打印分析结果
+        analyzer.print_analysis_result(result)
+        
+        # 保存结果
+        probability_results.append({
+            "stock_code": stock_code,
+            "result": result,
+            "analyzer": analyzer
+        })
+    
+    logging.info("概率转移矩阵分析完成！")
+    
+    return probability_results
 
 
 def run_daily_analysis():
@@ -132,14 +121,13 @@ def run_daily_analysis():
         config = AnalysisConfig()
 
         # 运行所有分析
-        # run_fft_analysis(config)
-        # run_correlation_analysis(config)
         run_harmonic_analysis(config)
+        probability_results = run_probability_analysis(config)
 
         logging.info("每日分析任务完成！")
 
         # 发送邮件
-        send_analysis_email()
+        send_analysis_email(probability_results)
 
     except Exception as e:
         logging.error(f"每日分析任务执行失败: {e}")
@@ -147,8 +135,8 @@ def run_daily_analysis():
         send_error_email(str(e))
 
 
-def generate_html_email_body(image_files=None):
-    """生成HTML格式的邮件正文，包含嵌入的图片"""
+def generate_html_email_body(image_files=None, probability_results=None):
+    """生成HTML格式的邮件正文，包含嵌入的图片和概率分析结果"""
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # 生成图片HTML代码
@@ -205,6 +193,21 @@ def generate_html_email_body(image_files=None):
                     <p class="image-caption">文件名: {img_name}</p>
                 </div>
                 """
+    
+    # 生成概率分析结果HTML代码
+    probability_html = ""
+    if probability_results:
+        for result in probability_results:
+            stock_code = result["stock_code"]
+            analyzer = result["analyzer"]
+            analysis_result = result["result"]
+            
+            # 生成当前股票的概率分析HTML
+            stock_probability_html = analyzer.generate_email_content(analysis_result)
+            probability_html += f"""
+            <h2>📈 {stock_code} 概率转移矩阵分析</h2>
+            {stock_probability_html}
+            """
 
     html_body = f"""
     <!DOCTYPE html>
@@ -274,6 +277,19 @@ def generate_html_email_body(image_files=None):
                 border-radius: 3px;
                 font-weight: bold;
             }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin: 10px 0;
+            }}
+            th, td {{
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }}
+            th {{
+                background-color: #f2f2f2;
+            }}
         </style>
     </head>
     <body>
@@ -283,6 +299,7 @@ def generate_html_email_body(image_files=None):
         </div>
         
         <div class="content">
+            {probability_html}
             {images_html}
         </div>
     </body>
@@ -292,7 +309,7 @@ def generate_html_email_body(image_files=None):
     return html_body
 
 
-def send_analysis_email():
+def send_analysis_email(probability_results=None):
     """发送分析结果邮件"""
     try:
         # 加载环境变量
@@ -355,21 +372,21 @@ def send_analysis_email():
                         logging.info(
                             f"发送带 {len(main_images)} 个嵌入图片的邮件给: {recipient}"
                         )
-                        # 生成包含图片的HTML邮件正文
-                        html_body = generate_html_email_body(main_images)
+                        # 生成包含图片和概率分析结果的HTML邮件正文
+                        html_body = generate_html_email_body(main_images, probability_results)
                         # 发送带嵌入图片的HTML邮件
                         email_sender.send_email_with_embedded_images(
                             recipient, subject, html_body, main_images
                         )
                     else:
                         # 发送普通HTML邮件
-                        html_body = generate_html_email_body()
+                        html_body = generate_html_email_body(None, probability_results)
                         email_sender.send_email(
                             recipient, subject, html_body, is_html=True
                         )
                 else:
                     # 发送普通HTML邮件
-                    html_body = generate_html_email_body()
+                    html_body = generate_html_email_body(None, probability_results)
                     email_sender.send_email(recipient, subject, html_body, is_html=True)
 
                 logging.info(f"成功发送邮件给: {recipient}")

@@ -234,6 +234,7 @@ test_results/
 temp_*.py
 debug_*.py
 experiment_*.py
+playground.ipynb
 
 # 用户特定文件
 user_config.py
@@ -244,8 +245,11 @@ local_config.py
 email_recipients.json
 .env
 env_template.txt
+email_recipients_backup.json
 
 # 其他
 *.orig
 *.rej
 *.pyc.bak
+.cursor/
+
