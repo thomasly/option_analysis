@@ -58,6 +58,7 @@ class ProbabilityAnalyzer:
         """计算收益率的分位数阈值"""
         # 使用历史收益率的分位数作为状态划分阈值
         self.thresholds = self.data["pct_chg"].quantile([0.1, 0.25, 0.5, 0.75, 0.9]).values
+        self.thresholds[2] = 0 # 涨跌的分界线必须是0
         logging.info(f"计算得到的阈值: {self.thresholds}")
     
     def _map_return_to_state(self, ret):
