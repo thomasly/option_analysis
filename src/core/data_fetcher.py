@@ -177,6 +177,93 @@ class DataFetcher:
             },
         }
 
+    def fetch_fx_data(
+        self,
+        fx_code: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        years: int = 5
+    ) -> pd.DataFrame:
+        """
+        获取外汇历史数据
+
+        Args:
+            fx_code (str): 外汇代码，如 "USDCNH.FXCM"
+            start_date (str, optional): 开始日期，格式 "YYYYMMDD"
+            end_date (str, optional): 结束日期，格式 "YYYYMMDD"
+            years (int): 获取的年数，默认5年
+
+        Returns:
+            pd.DataFrame: 处理后的外汇数据
+        """
+        # 设置默认日期范围
+        if end_date is None:
+            end_date = datetime.now().strftime("%Y%m%d")
+        if start_date is None:
+            start_date = (datetime.now() - timedelta(days=365 * years)).strftime(
+                "%Y%m%d"
+            )
+
+        # 生成缓存文件名
+        cache_filename = self._generate_fx_cache_filename(
+            fx_code, start_date, end_date
+        )
+        cache_path = os.path.join(self.data_dir, cache_filename)
+
+        # 尝试从缓存加载数据
+        if os.path.exists(cache_path):
+            logger.info(f"从缓存加载外汇数据: {cache_filename}")
+            df = pd.read_csv(
+                cache_path,
+                converters={"trade_date": str},
+            )
+        else:
+            logger.info(f"从Tushare API获取外汇数据...")
+            df = self._fetch_fx_from_api(fx_code, start_date, end_date)
+
+            # 保存到缓存
+            df.to_csv(cache_path, index=False)
+            logger.info(f"外汇数据已缓存至: {cache_path}")
+
+        # 处理数据
+        return self._process_fx_data(df)
+
+    def _generate_fx_cache_filename(
+        self, fx_code: str, start_date: str, end_date: str
+    ) -> str:
+        """生成外汇数据缓存文件名"""
+        date_hash = hashlib.md5(f"{start_date}_{end_date}".encode()).hexdigest()[:8]
+        # 替换点号，避免文件名问题
+        fx_code_safe = fx_code.replace(".", "_")
+        return f"fx_{fx_code_safe}_{date_hash}.csv"
+
+    def _fetch_fx_from_api(
+        self, fx_code: str, start_date: str, end_date: str
+    ) -> pd.DataFrame:
+        """从API获取外汇数据"""
+        df = self.pro.query(
+            'fx_daily',
+            ts_code=fx_code,
+            start_date=start_date,
+            end_date=end_date
+        )
+        return df
+
+    def _process_fx_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """处理外汇数据格式"""
+        # 转换日期格式
+        df['trade_date'] = pd.to_datetime(
+            df['trade_date'].astype(str).str.strip(), format="%Y%m%d", errors="coerce"
+        )
+
+        # 过滤无效日期
+        invalid_dates = df[df["trade_date"].isna()]
+        if not invalid_dates.empty:
+            logger.warning(f"发现 {len(invalid_dates)} 条无效日期数据，已过滤")
+            df = df.dropna(subset=["trade_date"])
+
+        return df.sort_values("trade_date").reset_index(drop=True)
+
     def clear_cache(self, pattern: Optional[str] = None):
         """
         清理缓存数据

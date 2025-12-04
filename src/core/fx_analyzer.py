@@ -9,12 +9,8 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-import tushare as ts
 
-# 初始化Tushare Pro API
-TUSHARE_TOKEN = "31027a741637467ff31f65faada254d6306a66f966063cefdcef9b40"
-ts.set_token(TUSHARE_TOKEN)
-pro = ts.pro_api()
+from .data_fetcher import DataFetcher
 
 
 class FxAnalyzer:
@@ -30,6 +26,7 @@ class FxAnalyzer:
         self.years = years
         self.data = None
         self.result_df = None
+        self.data_fetcher = DataFetcher()
         
         # 定义要获取的主要外汇对
         self.major_pairs = {
@@ -49,12 +46,6 @@ class FxAnalyzer:
         """获取外汇历史数据"""
         logging.info("获取外汇历史数据...")
         
-        # 设置时间范围
-        end_date = datetime.now().strftime("%Y%m%d")
-        start_date = (datetime.now() - timedelta(days=365*self.years)).strftime("%Y%m%d")
-        
-        logging.info(f"时间范围：{start_date} 到 {end_date}")
-        
         # 用于存储所有货币对的历史数据
         fx_data = {}
         
@@ -62,16 +53,13 @@ class FxAnalyzer:
         for pair_code, pair_name in self.major_pairs.items():
             logging.info(f"获取 {pair_name} ({pair_code}) 的历史数据...")
             try:
-                # 使用 fx_daily 接口获取历史数据
-                df = pro.query('fx_daily', ts_code=pair_code, start_date=start_date, end_date=end_date)
+                # 使用 DataFetcher 获取外汇数据
+                df = self.data_fetcher.fetch_fx_data(
+                    fx_code=pair_code,
+                    years=self.years
+                )
                 
                 if not df.empty:
-                    # 将日期转换为 datetime 类型
-                    df['trade_date'] = pd.to_datetime(df['trade_date'], format='%Y%m%d')
-                    # 按日期排序
-                    df = df.sort_values('trade_date')
-                    # 重置索引
-                    df = df.reset_index(drop=True)
                     # 仅保留需要的列
                     df = df[['trade_date', 'bid_close']]
                     # 重命名 bid_close 列为对应的货币对名称

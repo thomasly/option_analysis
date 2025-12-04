@@ -252,4 +252,5 @@ email_recipients_backup.json
 *.rej
 *.pyc.bak
 .cursor/
+.trae/
 
