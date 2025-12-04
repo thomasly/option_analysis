@@ -532,6 +532,7 @@ def main():
 
     # 设置日志
     setup_logging(args.log_level)
+    run_time = "16:30"
 
     if args.mode == "once":
         # 运行一次
@@ -541,9 +542,9 @@ def main():
         logging.info("启动定时任务模式...")
 
         # 设置定时任务 - 每天下午3点05分执行
-        schedule.every().day.at("15:05").do(run_daily_analysis)
+        schedule.every().day.at(run_time).do(run_daily_analysis)
 
-        logging.info("定时任务已设置，每天下午3:05执行分析")
+        logging.info(f"定时任务已设置，每天{run_time}执行分析")
         logging.info("程序正在运行中，按 Ctrl+C 停止...")
 
         try:
