@@ -413,55 +413,59 @@ class ProbabilityAnalyzer:
         <p>今天的实际走势: <strong>{result['today']['today_state_label']}</strong></p>
         
         <h4>一阶矩阵预测的今天走势概率：</h4>
-        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
-            <tr style="background-color: #f2f2f2;">
-                <th>走势类型</th>
-                <th>概率</th>
-            </tr>
+        <div style="overflow-x: auto; margin: 10px 0;">
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 100%; font-size: 14px;">
+                <tr style="background-color: #f2f2f2;">
+                    <th style="white-space: nowrap; padding: 10px;">走势类型</th>
+                    <th style="white-space: nowrap; padding: 10px;">概率</th>
+                </tr>
         """
         
         for i, prob in enumerate(result['today']['first_order_probs']):
             today_html += f"""
-            <tr>
-                <td>{STATE_LABELS[i]}</td>
-                <td>{prob:.2%}</td>
-            </tr>
+                <tr>
+                    <td style="padding: 8px; text-align: center;">{STATE_LABELS[i]}</td>
+                    <td style="padding: 8px; text-align: center;">{prob:.2%}</td>
+                </tr>
             """
         
         today_html += f"""
-        </table>
+            </table>
+        </div>
         
         <h4>二阶矩阵预测的今天走势概率：</h4>
-        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
-            <tr style="background-color: #f2f2f2;">
-                <th>走势类型</th>
-                <th>概率</th>
-            </tr>
+        <div style="overflow-x: auto; margin: 10px 0;">
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 100%; font-size: 14px;">
+                <tr style="background-color: #f2f2f2;">
+                    <th style="white-space: nowrap; padding: 10px;">走势类型</th>
+                    <th style="white-space: nowrap; padding: 10px;">概率</th>
+                </tr>
         """
         
         for i, prob in enumerate(result['today']['second_order_probs']):
             today_html += f"""
-            <tr>
-                <td>{STATE_LABELS[i]}</td>
-                <td>{prob:.2%}</td>
-            </tr>
+                <tr>
+                    <td style="padding: 8px; text-align: center;">{STATE_LABELS[i]}</td>
+                    <td style="padding: 8px; text-align: center;">{prob:.2%}</td>
+                </tr>
             """
         
         today_html += f"""
-        </table>
+            </table>
+        </div>
         """
         
         # 添加预警信息
         alert_level = result['today']['alert_level']
         if alert_level == "strong":
             today_html += f"""
-            <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 10px; margin-top: 10px;">
+            <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 10px; margin-top: 10px; font-size: 14px;">
                 <strong>⚠️  强预警：</strong>今天的走势在一阶和二阶矩阵预测中概率均为0，市场可能出现了重大变化！
             </div>
             """
         elif alert_level == "normal":
             today_html += f"""
-            <div style="background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; padding: 10px; margin-top: 10px;">
+            <div style="background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; padding: 10px; margin-top: 10px; font-size: 14px;">
                 <strong>⚠️  预警：</strong>今天的走势在一阶或二阶矩阵预测中概率为0，市场可能出现了变化！
             </div>
             """
@@ -472,48 +476,52 @@ class ProbabilityAnalyzer:
         <p>当前状态: <strong>{result['tomorrow']['current_state_label']}</strong></p>
         
         <h4>一阶矩阵预测的明天走势概率：</h4>
-        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
-            <tr style="background-color: #f2f2f2;">
-                <th>走势类型</th>
-                <th>概率</th>
-            </tr>
+        <div style="overflow-x: auto; margin: 10px 0;">
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 100%; font-size: 14px;">
+                <tr style="background-color: #f2f2f2;">
+                    <th style="white-space: nowrap; padding: 10px;">走势类型</th>
+                    <th style="white-space: nowrap; padding: 10px;">概率</th>
+                </tr>
         """
         
         for i, prob in enumerate(result['tomorrow']['first_order_probs']):
             tomorrow_html += f"""
-            <tr>
-                <td>{STATE_LABELS[i]}</td>
-                <td>{prob:.2%}</td>
-            </tr>
+                <tr>
+                    <td style="padding: 8px; text-align: center;">{STATE_LABELS[i]}</td>
+                    <td style="padding: 8px; text-align: center;">{prob:.2%}</td>
+                </tr>
             """
         
         tomorrow_html += f"""
-        </table>
+            </table>
+        </div>
         
         <h4>二阶矩阵预测的明天走势概率：</h4>
-        <table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">
-            <tr style="background-color: #f2f2f2;">
-                <th>走势类型</th>
-                <th>概率</th>
-            </tr>
+        <div style="overflow-x: auto; margin: 10px 0;">
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 100%; font-size: 14px;">
+                <tr style="background-color: #f2f2f2;">
+                    <th style="white-space: nowrap; padding: 10px;">走势类型</th>
+                    <th style="white-space: nowrap; padding: 10px;">概率</th>
+                </tr>
         """
         
         for i, prob in enumerate(result['tomorrow']['second_order_probs']):
             tomorrow_html += f"""
-            <tr>
-                <td>{STATE_LABELS[i]}</td>
-                <td>{prob:.2%}</td>
-            </tr>
+                <tr>
+                    <td style="padding: 8px; text-align: center;">{STATE_LABELS[i]}</td>
+                    <td style="padding: 8px; text-align: center;">{prob:.2%}</td>
+                </tr>
             """
         
         tomorrow_html += f"""
-        </table>
+            </table>
+        </div>
         """
         
         # 组合完整的HTML内容
         html_content = f"""
-        <div class="analysis-section">
-            <h2>📊 概率转移矩阵分析</h2>
+        <div class="analysis-section" style="font-size: 16px; line-height: 1.6;">
+            <h2 style="font-size: 20px; margin-bottom: 20px;">📊 概率转移矩阵分析</h2>
             {today_html}
             {tomorrow_html}
         </div>
