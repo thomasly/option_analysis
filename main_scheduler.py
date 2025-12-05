@@ -14,7 +14,7 @@ import glob
 from datetime import datetime
 from dotenv import load_dotenv
 from src.config import AnalysisConfig
-from src.core import HarmonicAnalyzer, ProbabilityAnalyzer, FxAnalyzer
+from src.core import HarmonicAnalyzer, ProbabilityAnalyzer, FxAnalyzer, GoldAnalyzer
 from src.email_sender import EmailSender
 
 
@@ -135,6 +135,25 @@ def run_fx_analysis(config: AnalysisConfig):
     }
 
 
+def run_gold_analysis(config: AnalysisConfig):
+    """运行黄金现货价格分析"""
+    logging.info("开始黄金现货价格分析...")
+    
+    analyzer = GoldAnalyzer(
+        years=config.harmonic.analysis_years,
+    )
+    
+    result = analyzer.analyze()
+    analyzer.print_analysis_result(result)
+    
+    logging.info("黄金现货价格分析完成！")
+    
+    return {
+        "result": result,
+        "analyzer": analyzer
+    }
+
+
 def run_daily_analysis():
     """执行每日分析任务"""
     try:
@@ -147,11 +166,12 @@ def run_daily_analysis():
         run_harmonic_analysis(config)
         probability_results = run_probability_analysis(config)
         fx_results = run_fx_analysis(config)
+        gold_results = run_gold_analysis(config)
 
         logging.info("每日分析任务完成！")
 
         # 发送邮件
-        send_analysis_email(probability_results, fx_results)
+        send_analysis_email(probability_results, fx_results, gold_results)
 
     except Exception as e:
         logging.error(f"每日分析任务执行失败: {e}")
@@ -159,7 +179,7 @@ def run_daily_analysis():
         send_error_email(str(e))
 
 
-def generate_html_email_body(image_files=None, probability_results=None, fx_results=None):
+def generate_html_email_body(image_files=None, probability_results=None, fx_results=None, gold_results=None):
     """生成HTML格式的邮件正文，包含嵌入的图片和概率分析结果"""
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -172,8 +192,18 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
         # 生成外汇分析HTML
         fx_html = analyzer.generate_email_content(analysis_result)
     
+    # 生成黄金分析结果HTML代码
+    gold_html = ""
+    if gold_results:
+        analyzer = gold_results["analyzer"]
+        analysis_result = gold_results["result"]
+        
+        # 生成黄金分析HTML
+        gold_html = analyzer.generate_email_content(analysis_result)
+    
     # 分离并排序图片
     fx_images = []
+    gold_images = []
     daily_images = []
     weekly_images = []
     other_images = []
@@ -183,6 +213,8 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
             img_name = os.path.basename(img_path)
             if "fx_cny" in img_name:
                 fx_images.append((i, img_path, "外汇汇率分析"))
+            elif "gold_price" in img_name:
+                gold_images.append((i, img_path, "黄金现货价格分析"))
             elif "Daily" in img_name:
                 daily_images.append((i, img_path, "Daily Analysis"))
             elif "Weekly" in img_name:
@@ -192,7 +224,7 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
     
     # 生成图片HTML代码
     images_html = ""
-    if fx_images or daily_images or weekly_images or other_images:
+    if fx_images or gold_images or daily_images or weekly_images or other_images:
         images_html = """
             <h2>📊 分析结果图表</h2>
             <p>以下是本次分析生成的关键图表：</p>
@@ -208,7 +240,17 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
             </div>
             """
         
-        # 再放周期分析的两张图（日线和周线）
+        # 再放黄金现货价格分析图（根据要求，放在外汇图之后，周期分析图之前）
+        for i, img_path, desc in gold_images:
+            images_html += f"""
+            <div class="image-container">
+                <h3>{desc}</h3>
+                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
+            </div>
+            """
+        
+        # 然后放周期分析的两张图（日线和周线）
         for i, img_path, desc in daily_images:
             images_html += f"""
             <div class="image-container">
@@ -344,6 +386,7 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
         
         <div class="content">
             {fx_html}
+            {gold_html}
             {images_html}
             {probability_html}
         </div>
@@ -354,7 +397,7 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
     return html_body
 
 
-def send_analysis_email(probability_results=None, fx_results=None):
+def send_analysis_email(probability_results=None, fx_results=None, gold_results=None):
     """发送分析结果邮件"""
     try:
         # 加载环境变量
@@ -390,6 +433,12 @@ def send_analysis_email(probability_results=None, fx_results=None):
             fx_plot_path = fx_results['result']['plot_path']
             if fx_plot_path not in image_files:
                 image_files.append(fx_plot_path)
+        
+        # 如果有黄金分析结果，将黄金图表添加到图片列表中
+        if gold_results and gold_results['result']['plot_path']:
+            gold_plot_path = gold_results['result']['plot_path']
+            if gold_plot_path not in image_files:
+                image_files.append(gold_plot_path)
 
         # 生成邮件内容
         subject = f"金融数据分析报告 - {datetime.now().strftime('%Y-%m-%d')}"
@@ -401,10 +450,11 @@ def send_analysis_email(probability_results=None, fx_results=None):
                     # 选择主要的图片嵌入到邮件正文中
                     main_images = []
 
-                    # 分别选择日线、周线的综合趋势分析图和外汇分析图
+                    # 分别选择日线、周线的综合趋势分析图、外汇分析图和黄金分析图
                     daily_images = []
                     weekly_images = []
                     fx_images = []
+                    gold_images = []
 
                     for img in image_files:
                         if "Daily" in img:
@@ -413,37 +463,42 @@ def send_analysis_email(probability_results=None, fx_results=None):
                             weekly_images.append(img)
                         elif "fx_cny" in img:
                             fx_images.append(img)
+                        elif "gold_price" in img:
+                            gold_images.append(img)
 
                     # 选择最新的图片（按文件名排序，选择最后一个）
+                    if fx_images:
+                        fx_images.sort()
+                        main_images.append(fx_images[-1])
+                    if gold_images:
+                        gold_images.sort()
+                        main_images.append(gold_images[-1])
                     if daily_images:
                         daily_images.sort()
                         main_images.append(daily_images[-1])
                     if weekly_images:
                         weekly_images.sort()
                         main_images.append(weekly_images[-1])
-                    if fx_images:
-                        fx_images.sort()
-                        main_images.append(fx_images[-1])
 
                     if main_images:
                         logging.info(
                             f"发送带 {len(main_images)} 个嵌入图片的邮件给: {recipient}"
                         )
                         # 生成包含图片和概率分析结果的HTML邮件正文
-                        html_body = generate_html_email_body(main_images, probability_results, fx_results)
+                        html_body = generate_html_email_body(main_images, probability_results, fx_results, gold_results)
                         # 发送带嵌入图片的HTML邮件
                         email_sender.send_email_with_embedded_images(
                             recipient, subject, html_body, main_images
                         )
                     else:
                         # 发送普通HTML邮件
-                        html_body = generate_html_email_body(None, probability_results, fx_results)
+                        html_body = generate_html_email_body(None, probability_results, fx_results, gold_results)
                         email_sender.send_email(
                             recipient, subject, html_body, is_html=True
                         )
                 else:
                     # 发送普通HTML邮件
-                    html_body = generate_html_email_body(None, probability_results, fx_results)
+                    html_body = generate_html_email_body(None, probability_results, fx_results, gold_results)
                     email_sender.send_email(recipient, subject, html_body, is_html=True)
 
                 logging.info(f"成功发送邮件给: {recipient}")
