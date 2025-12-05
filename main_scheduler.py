@@ -183,24 +183,6 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
     """生成HTML格式的邮件正文，包含嵌入的图片和概率分析结果"""
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # 生成外汇分析结果HTML代码
-    fx_html = ""
-    if fx_results:
-        analyzer = fx_results["analyzer"]
-        analysis_result = fx_results["result"]
-        
-        # 生成外汇分析HTML
-        fx_html = analyzer.generate_email_content(analysis_result)
-    
-    # 生成黄金分析结果HTML代码
-    gold_html = ""
-    if gold_results:
-        analyzer = gold_results["analyzer"]
-        analysis_result = gold_results["result"]
-        
-        # 生成黄金分析HTML
-        gold_html = analyzer.generate_email_content(analysis_result)
-    
     # 分离并排序图片
     fx_images = []
     gold_images = []
@@ -222,66 +204,149 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
             else:
                 other_images.append((i, img_path, "Analysis"))
     
-    # 生成图片HTML代码
-    images_html = ""
-    if fx_images or gold_images or daily_images or weekly_images or other_images:
-        images_html = """
-            <h2>📊 分析结果图表</h2>
-            <p>以下是本次分析生成的关键图表：</p>
+    # 生成外汇分析结果HTML代码 - 作为独立block
+    fx_html = ""
+    if fx_results:
+        analyzer = fx_results["analyzer"]
+        analysis_result = fx_results["result"]
+        
+        # 生成外汇分析HTML
+        fx_content = analyzer.generate_email_content(analysis_result)
+        
+        # 添加外汇分析图表
+        fx_charts = ""
+        if fx_images:
+            fx_charts = """
+            <h2>📊 外汇汇率分析图表</h2>
+            <p>以下是外汇汇率分析生成的图表：</p>
+            """
+            for i, img_path, desc in fx_images:
+                fx_charts += f"""
+                <div class="image-container">
+                    <h3>{desc}</h3>
+                    <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                    <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
+                </div>
+                """
+        
+        # 整合为完整的外汇分析block
+        fx_html = f"""
+        <div class="analysis-block">
+            <div class="analysis-block-header">
+                <h2>💱 外汇汇率分析</h2>
+            </div>
+            <div class="analysis-block-content">
+                {fx_content}
+                {fx_charts}
+            </div>
+        </div>
         """
-        
-        # 先放外汇汇率分析图
-        for i, img_path, desc in fx_images:
-            images_html += f"""
-            <div class="image-container">
-                <h3>{desc}</h3>
-                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
-                <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
-            </div>
-            """
-        
-        # 再放黄金现货价格分析图（根据要求，放在外汇图之后，周期分析图之前）
-        for i, img_path, desc in gold_images:
-            images_html += f"""
-            <div class="image-container">
-                <h3>{desc}</h3>
-                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
-                <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
-            </div>
-            """
-        
-        # 然后放周期分析的两张图（日线和周线）
-        for i, img_path, desc in daily_images:
-            images_html += f"""
-            <div class="image-container">
-                <h3>{desc}</h3>
-                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
-                <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
-            </div>
-            """
-        
-        for i, img_path, desc in weekly_images:
-            images_html += f"""
-            <div class="image-container">
-                <h3>{desc}</h3>
-                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
-                <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
-            </div>
-            """
-        
-        # 最后放其他图片
-        for i, img_path, desc in other_images:
-            images_html += f"""
-            <div class="image-container">
-                <h3>{desc}</h3>
-                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
-                <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
-            </div>
-            """
     
-    # 生成概率分析结果HTML代码
+    # 生成黄金分析结果HTML代码 - 作为独立block
+    gold_html = ""
+    if gold_results:
+        analyzer = gold_results["analyzer"]
+        analysis_result = gold_results["result"]
+        
+        # 生成黄金分析HTML
+        gold_content = analyzer.generate_email_content(analysis_result)
+        
+        # 添加黄金分析图表
+        gold_charts = ""
+        if gold_images:
+            gold_charts = """
+            <h2>📊 黄金现货价格分析图表</h2>
+            <p>以下是黄金现货价格分析生成的图表：</p>
+            """
+            for i, img_path, desc in gold_images:
+                gold_charts += f"""
+                <div class="image-container">
+                    <h3>{desc}</h3>
+                    <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                    <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
+                </div>
+                """
+        
+        # 整合为完整的黄金分析block
+        gold_html = f"""
+        <div class="analysis-block">
+            <div class="analysis-block-header">
+                <h2>✨ 黄金现货价格分析</h2>
+            </div>
+            <div class="analysis-block-content">
+                {gold_content}
+                {gold_charts}
+            </div>
+        </div>
+        """
+    
+    # 生成谐波分析图表HTML代码 - 作为独立block
+    harmonic_images_html = ""
+    if daily_images or weekly_images:
+        harmonic_charts = ""
+        # 日线分析图
+        for i, img_path, desc in daily_images:
+            harmonic_charts += f"""
+            <div class="image-container">
+                <h3>{desc}</h3>
+                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
+            </div>
+            """
+        # 周线分析图
+        for i, img_path, desc in weekly_images:
+            harmonic_charts += f"""
+            <div class="image-container">
+                <h3>{desc}</h3>
+                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
+            </div>
+            """
+        
+        # 整合为完整的谐波分析block
+        harmonic_images_html = f"""
+        <div class="analysis-block">
+            <div class="analysis-block-header">
+                <h2>📈 谐波分析</h2>
+            </div>
+            <div class="analysis-block-content">
+                <h3>📊 谐波分析图表</h3>
+                <p>以下是谐波分析生成的图表：</p>
+                {harmonic_charts}
+            </div>
+        </div>
+        """
+    
+    # 生成其他图表HTML代码 - 作为独立block
+    other_images_html = ""
+    if other_images:
+        other_charts = ""
+        for i, img_path, desc in other_images:
+            other_charts += f"""
+            <div class="image-container">
+                <h3>{desc}</h3>
+                <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
+            </div>
+            """
+        
+        # 整合为完整的其他分析block
+        other_images_html = f"""
+        <div class="analysis-block">
+            <div class="analysis-block-header">
+                <h2>📊 其他分析图表</h2>
+            </div>
+            <div class="analysis-block-content">
+                <p>以下是其他分析生成的图表：</p>
+                {other_charts}
+            </div>
+        </div>
+        """
+    
+    # 生成概率分析结果HTML代码 - 作为独立block
     probability_html = ""
     if probability_results:
+        prob_content = ""
         for result in probability_results:
             stock_code = result["stock_code"]
             analyzer = result["analyzer"]
@@ -289,10 +354,22 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
             
             # 生成当前股票的概率分析HTML
             stock_probability_html = analyzer.generate_email_content(analysis_result)
-            probability_html += f"""
+            prob_content += f"""
             <h2>📈 {stock_code} 概率转移矩阵分析</h2>
             {stock_probability_html}
             """
+        
+        # 整合为完整的概率分析block
+        probability_html = f"""
+        <div class="analysis-block">
+            <div class="analysis-block-header">
+                <h2>🎲 概率转移矩阵分析</h2>
+            </div>
+            <div class="analysis-block-content">
+                {prob_content}
+            </div>
+        </div>
+        """
 
     html_body = f"""
     <!DOCTYPE html>
@@ -308,28 +385,70 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
                 max-width: 900px;
                 margin: 0 auto;
                 padding: 20px;
+                background-color: #f5f7fa;
             }}
             .header {{
                 background-color: #2c3e50;
                 color: white;
                 padding: 20px;
-                border-radius: 8px;
-                margin-bottom: 20px;
+                border-radius: 10px;
+                margin-bottom: 30px;
                 text-align: center;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             }}
             .content {{
                 background-color: white;
-                padding: 20px;
-                border-radius: 8px;
+                padding: 30px;
+                border-radius: 10px;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }}
+            /* 新增的分析block样式 */
+            .analysis-block {{
+                margin: 30px 0;
+                border-radius: 10px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                overflow: hidden;
+                background-color: white;
+                border: 1px solid #e1e8ed;
+            }}
+            .analysis-block-header {{
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px;
+                text-align: center;
+            }}
+            .analysis-block-header h2 {{
+                margin: 0;
+                font-size: 22px;
+                font-weight: bold;
+            }}
+            .analysis-block-content {{
+                padding: 25px;
+            }}
+            /* 增强的分析section样式 */
             .analysis-section {{
                 margin: 20px 0;
                 padding: 15px;
-                background-color: #ecf0f1;
-                border-radius: 5px;
+                background-color: #f8fafc;
+                border-radius: 8px;
                 border-left: 4px solid #3498db;
             }}
+            /* 增强的标题样式 */
+            h2 {{
+                color: #2c3e50;
+                margin-top: 0;
+                margin-bottom: 20px;
+                font-size: 20px;
+                border-bottom: 2px solid #ecf0f1;
+                padding-bottom: 10px;
+            }}
+            h3 {{
+                color: #34495e;
+                margin-top: 20px;
+                margin-bottom: 15px;
+                font-size: 18px;
+            }}
+            /* 增强的图片容器样式 */
             .image-row {{
                 display: flex;
                 justify-content: space-between;
@@ -338,43 +457,60 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
             }}
             .image-container {{
                 flex: 1;
-                padding: 15px;
-                background-color: #f8f9fa;
-                border-radius: 5px;
+                padding: 20px;
+                background-color: #f8fafc;
+                border-radius: 8px;
                 text-align: center;
-                margin: 10px 0;
+                margin: 15px 0;
+                border: 1px solid #e1e8ed;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             }}
             .image-caption {{
                 color: #666;
                 font-size: 0.9em;
-                margin-top: 10px;
+                margin-top: 15px;
+                font-style: italic;
             }}
+            /* 增强的表格样式 */
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin: 15px 0;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }}
+            th, td {{
+                border: 1px solid #e1e8ed;
+                padding: 12px;
+                text-align: left;
+            }}
+            th {{
+                background-color: #f8fafc;
+                font-weight: bold;
+                color: #2c3e50;
+            }}
+            tr:nth-child(even) {{
+                background-color: #f8fafc;
+            }}
+            /* 增强的footer样式 */
             .footer {{
-                margin-top: 30px;
+                margin-top: 40px;
                 padding-top: 20px;
-                border-top: 1px solid #eee;
+                border-top: 2px solid #ecf0f1;
                 text-align: center;
                 color: #666;
+                font-size: 0.9em;
             }}
             .highlight {{
                 background-color: #f39c12;
                 color: white;
-                padding: 2px 6px;
-                border-radius: 3px;
+                padding: 3px 8px;
+                border-radius: 4px;
                 font-weight: bold;
             }}
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-                margin: 10px 0;
-            }}
-            th, td {{
-                border: 1px solid #ddd;
-                padding: 8px;
-                text-align: left;
-            }}
-            th {{
-                background-color: #f2f2f2;
+            /* 增强的段落样式 */
+            p {{
+                margin-bottom: 15px;
+                line-height: 1.7;
             }}
         </style>
     </head>
@@ -387,8 +523,9 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
         <div class="content">
             {fx_html}
             {gold_html}
-            {images_html}
+            {harmonic_images_html}
             {probability_html}
+            {other_images_html}
         </div>
     </body>
     </html>
