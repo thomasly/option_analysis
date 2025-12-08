@@ -406,6 +406,21 @@ class ProbabilityAnalyzer:
         Returns:
             str: HTML格式的邮件内容
         """
+        # 生成阈值信息的HTML
+        thresholds_html = f"""
+        <h3>📊 状态划分规则</h3>
+        <p>以下是基于历史收益率的状态划分规则：</p>
+        <ul style="margin-left: 20px;">
+            <li><strong>大跌</strong>：收益率 ≤ {self.thresholds[0]:.5f}%</li>
+            <li><strong>中跌</strong>：收益率 ≤ {self.thresholds[1]:.5f}%</li>
+            <li><strong>小跌</strong>：收益率 ≤ 0.00000%</li>
+            <li><strong>小涨</strong>：收益率 ≤ {self.thresholds[3]:.5f}%</li>
+            <li><strong>中涨</strong>：收益率 ≤ {self.thresholds[4]:.5f}%</li>
+            <li><strong>大涨</strong>：收益率 &gt; {self.thresholds[4]:.5f}%</li>
+        </ul>
+        <br>
+        """
+        
         # 生成今天分析的HTML
         today_html = f"""
         <h3>1. 今天的走势分析</h3>
@@ -522,6 +537,7 @@ class ProbabilityAnalyzer:
         html_content = f"""
         <div class="analysis-section" style="font-size: 16px; line-height: 1.6;">
             <h2 style="font-size: 20px; margin-bottom: 20px;">📊 概率转移矩阵分析</h2>
+            {thresholds_html}
             {today_html}
             {tomorrow_html}
         </div>

@@ -127,10 +127,13 @@ class GoldAnalyzer:
         for contract_code, df in self.data.items():
             if 'close' in df.columns:
                 contract_name = self.major_contracts[contract_code]
-                stats = df['close'].describe()
+                # 转换为克/10000元：10000 / 价格（元/克）
+                grams_per_10k = 10000 / df['close']
+                stats = grams_per_10k.describe()
+                latest_grams = 10000 / df['close'].iloc[-1]
                 statistics[contract_name] = {
                     'mean': stats['mean'],
-                    'median': stats['50%'],
+                    'latest': latest_grams,
                     'min': stats['min'],
                     'max': stats['max'],
                     'std': stats['std']
@@ -203,11 +206,11 @@ class GoldAnalyzer:
         print("\n2. 各黄金合约统计信息：")
         for contract_name, stats in result['statistics']['statistics'].items():
             print(f"\n   {contract_name}:")
-            print(f"      均值: {stats['mean']:.2f} 元/克")
-            print(f"      中位数: {stats['median']:.2f} 元/克")
-            print(f"      最小值: {stats['min']:.2f} 元/克")
-            print(f"      最大值: {stats['max']:.2f} 元/克")
-            print(f"      标准差: {stats['std']:.2f} 元/克")
+            print(f"      最新价: {stats['latest']:.4f} 克/10000元")
+            print(f"      均值: {stats['mean']:.4f} 克/10000元")
+            print(f"      最小值: {stats['min']:.4f} 克/10000元")
+            print(f"      最大值: {stats['max']:.4f} 克/10000元")
+            print(f"      标准差: {stats['std']:.4f} 克/10000元")
         
         # 打印图表保存路径
         print(f"\n3. 图表保存路径：")
@@ -246,10 +249,10 @@ class GoldAnalyzer:
                 <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 100%; font-size: 14px;">
                     <tr style="background-color: #f2f2f2;">
                         <th style="white-space: nowrap; padding: 10px; text-align: center;">黄金合约</th>
-                        <th style="white-space: nowrap; padding: 10px; text-align: center;">均值 (元/克)</th>
-                        <th style="white-space: nowrap; padding: 10px; text-align: center;">中位数 (元/克)</th>
-                        <th style="white-space: nowrap; padding: 10px; text-align: center;">最小值 (元/克)</th>
-                        <th style="white-space: nowrap; padding: 10px; text-align: center;">最大值 (元/克)</th>
+                        <th style="white-space: nowrap; padding: 10px; text-align: center;">最新价 (克/10000元)</th>
+                        <th style="white-space: nowrap; padding: 10px; text-align: center;">均值 (克/10000元)</th>
+                        <th style="white-space: nowrap; padding: 10px; text-align: center;">最小值 (克/10000元)</th>
+                        <th style="white-space: nowrap; padding: 10px; text-align: center;">最大值 (克/10000元)</th>
                         <th style="white-space: nowrap; padding: 10px; text-align: center;">标准差</th>
                     </tr>
             """
@@ -258,11 +261,11 @@ class GoldAnalyzer:
                 stats_html += f"""
                     <tr>
                         <td style="padding: 8px; text-align: center;">{contract_name}</td>
-                        <td style="padding: 8px; text-align: center;">{stats['mean']:.2f} </td>
-                        <td style="padding: 8px; text-align: center;">{stats['median']:.2f} </td>
-                        <td style="padding: 8px; text-align: center;">{stats['min']:.2f} </td>
-                        <td style="padding: 8px; text-align: center;">{stats['max']:.2f} </td>
-                        <td style="padding: 8px; text-align: center;">{stats['std']:.2f} </td>
+                        <td style="padding: 8px; text-align: center;">{stats['latest']:.4f} </td>
+                        <td style="padding: 8px; text-align: center;">{stats['mean']:.4f} </td>
+                        <td style="padding: 8px; text-align: center;">{stats['min']:.4f} </td>
+                        <td style="padding: 8px; text-align: center;">{stats['max']:.4f} </td>
+                        <td style="padding: 8px; text-align: center;">{stats['std']:.4f} </td>
                     </tr>
                 """
             

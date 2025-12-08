@@ -207,9 +207,11 @@ class FxAnalyzer:
         statistics = {}
         for col, label in columns_to_plot.items():
             stats = self.result_df[col].describe()
+            # 获取最新价：使用最后一条数据的收盘价
+            latest_price = self.result_df[col].iloc[-1]
             statistics[label] = {
+                'latest': latest_price,
                 'mean': stats['mean'],
-                'median': stats['50%'],
                 'min': stats['min'],
                 'max': stats['max'],
                 'std': stats['std']
@@ -280,8 +282,8 @@ class FxAnalyzer:
         print("\n2. 各外汇对统计信息：")
         for currency, stats in result['statistics']['statistics'].items():
             print(f"\n   {currency}:")
+            print(f"      最新价: {stats['latest']:.4f}")
             print(f"      均值: {stats['mean']:.4f}")
-            print(f"      中位数: {stats['median']:.4f}")
             print(f"      最小值: {stats['min']:.4f}")
             print(f"      最大值: {stats['max']:.4f}")
             print(f"      标准差: {stats['std']:.4f}")
@@ -316,8 +318,8 @@ class FxAnalyzer:
                 <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 100%; font-size: 14px;">
                     <tr style="background-color: #f2f2f2;">
                         <th style="white-space: nowrap; padding: 10px; text-align: center;">货币对</th>
+                        <th style="white-space: nowrap; padding: 10px; text-align: center;">最新价</th>
                         <th style="white-space: nowrap; padding: 10px; text-align: center;">均值</th>
-                        <th style="white-space: nowrap; padding: 10px; text-align: center;">中位数</th>
                         <th style="white-space: nowrap; padding: 10px; text-align: center;">最小值</th>
                         <th style="white-space: nowrap; padding: 10px; text-align: center;">最大值</th>
                         <th style="white-space: nowrap; padding: 10px; text-align: center;">标准差</th>
@@ -328,8 +330,8 @@ class FxAnalyzer:
                 stats_html += f"""
                     <tr>
                         <td style="padding: 8px; text-align: center;">{currency}</td>
+                        <td style="padding: 8px; text-align: center;">{stats['latest']:.4f} </td>
                         <td style="padding: 8px; text-align: center;">{stats['mean']:.4f} </td>
-                        <td style="padding: 8px; text-align: center;">{stats['median']:.4f} </td>
                         <td style="padding: 8px; text-align: center;">{stats['min']:.4f} </td>
                         <td style="padding: 8px; text-align: center;">{stats['max']:.4f} </td>
                         <td style="padding: 8px; text-align: center;">{stats['std']:.4f} </td>
