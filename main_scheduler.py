@@ -14,7 +14,7 @@ import glob
 from datetime import datetime
 from dotenv import load_dotenv
 from src.config import AnalysisConfig
-from src.core import HarmonicAnalyzer, ProbabilityAnalyzer, FxAnalyzer, GoldAnalyzer
+from src.core import HarmonicAnalyzer, ProbabilityAnalyzer, FxAnalyzer, GoldAnalyzer, FaboAnalyzer
 from src.email_sender import EmailSender
 
 
@@ -154,6 +154,25 @@ def run_gold_analysis(config: AnalysisConfig):
     }
 
 
+def run_fabo_analysis(config: AnalysisConfig):
+    """运行斐波那契分析"""
+    logging.info("开始斐波那契分析...")
+    
+    analyzer = FaboAnalyzer(
+        years=config.harmonic.analysis_years,
+    )
+    
+    result = analyzer.analyze()
+    analyzer.print_analysis_result(result)
+    
+    logging.info("斐波那契分析完成！")
+    
+    return {
+        "result": result,
+        "analyzer": analyzer
+    }
+
+
 def run_daily_analysis():
     """执行每日分析任务"""
     try:
@@ -167,11 +186,12 @@ def run_daily_analysis():
         probability_results = run_probability_analysis(config)
         fx_results = run_fx_analysis(config)
         gold_results = run_gold_analysis(config)
+        fabo_results = run_fabo_analysis(config)
 
         logging.info("每日分析任务完成！")
 
         # 发送邮件
-        send_analysis_email(probability_results, fx_results, gold_results)
+        send_analysis_email(probability_results, fx_results, gold_results, fabo_results)
 
     except Exception as e:
         logging.error(f"每日分析任务执行失败: {e}")
@@ -179,13 +199,14 @@ def run_daily_analysis():
         send_error_email(str(e))
 
 
-def generate_html_email_body(image_files=None, probability_results=None, fx_results=None, gold_results=None):
+def generate_html_email_body(image_files=None, probability_results=None, fx_results=None, gold_results=None, fabo_results=None):
     """生成HTML格式的邮件正文，包含嵌入的图片和概率分析结果"""
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # 分离并排序图片
     fx_images = []
     gold_images = []
+    fabo_images = []
     daily_images = []
     weekly_images = []
     other_images = []
@@ -197,6 +218,8 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
                 fx_images.append((i, img_path, "外汇汇率分析"))
             elif "gold_price" in img_name:
                 gold_images.append((i, img_path, "黄金现货价格分析"))
+            elif "fibonacci" in img_name:
+                fabo_images.append((i, img_path, "斐波那契分析"))
             elif "Daily" in img_name:
                 daily_images.append((i, img_path, "Daily Analysis"))
             elif "Weekly" in img_name:
@@ -276,6 +299,44 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
             <div class="analysis-block-content">
                 {gold_content}
                 {gold_charts}
+            </div>
+        </div>
+        """
+    
+    # 生成斐波那契分析结果HTML代码 - 作为独立block
+    fabo_html = ""
+    if fabo_results:
+        analyzer = fabo_results["analyzer"]
+        analysis_result = fabo_results["result"]
+        
+        # 生成斐波那契分析HTML
+        fabo_content = analyzer.generate_email_content(analysis_result)
+        
+        # 添加斐波那契分析图表
+        fabo_charts = ""
+        if fabo_images:
+            fabo_charts = """
+            <h2>📊 斐波那契分析图表</h2>
+            <p>以下是斐波那契分析生成的图表：</p>
+            """
+            for i, img_path, desc in fabo_images:
+                fabo_charts += f"""
+                <div class="image-container">
+                    <h3>{desc}</h3>
+                    <img src="cid:image_{i}" alt="{desc}" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 5px; margin: 10px 0;">
+                    <p class="image-caption">文件名: {os.path.basename(img_path)}</p>
+                </div>
+                """
+        
+        # 整合为完整的斐波那契分析block
+        fabo_html = f"""
+        <div class="analysis-block">
+            <div class="analysis-block-header">
+                <h2>📐 斐波那契分析</h2>
+            </div>
+            <div class="analysis-block-content">
+                {fabo_content}
+                {fabo_charts}
             </div>
         </div>
         """
@@ -524,6 +585,7 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
             {fx_html}
             {gold_html}
             {harmonic_images_html}
+            {fabo_html}
             {probability_html}
             {other_images_html}
         </div>
@@ -534,7 +596,7 @@ def generate_html_email_body(image_files=None, probability_results=None, fx_resu
     return html_body
 
 
-def send_analysis_email(probability_results=None, fx_results=None, gold_results=None):
+def send_analysis_email(probability_results=None, fx_results=None, gold_results=None, fabo_results=None):
     """发送分析结果邮件"""
     try:
         # 加载环境变量
@@ -576,6 +638,19 @@ def send_analysis_email(probability_results=None, fx_results=None, gold_results=
             gold_plot_path = gold_results['result']['plot_path']
             if gold_plot_path not in image_files:
                 image_files.append(gold_plot_path)
+        
+        # 如果有斐波那契分析结果，将斐波那契图表添加到图片列表中
+        if fabo_results:
+            # 添加压力位图表
+            if fabo_results['result']['resistance_chart']:
+                resistance_chart_path = fabo_results['result']['resistance_chart']
+                if resistance_chart_path not in image_files:
+                    image_files.append(resistance_chart_path)
+            # 添加支撑位图表
+            if fabo_results['result']['support_chart']:
+                support_chart_path = fabo_results['result']['support_chart']
+                if support_chart_path not in image_files:
+                    image_files.append(support_chart_path)
 
         # 生成邮件内容
         subject = f"金融数据分析报告 - {datetime.now().strftime('%Y-%m-%d')}"
@@ -587,11 +662,12 @@ def send_analysis_email(probability_results=None, fx_results=None, gold_results=
                     # 选择主要的图片嵌入到邮件正文中
                     main_images = []
 
-                    # 分别选择日线、周线的综合趋势分析图、外汇分析图和黄金分析图
+                    # 分别选择日线、周线的综合趋势分析图、外汇分析图、黄金分析图和斐波那契分析图
                     daily_images = []
                     weekly_images = []
                     fx_images = []
                     gold_images = []
+                    fabo_images = []
 
                     for img in image_files:
                         if "Daily" in img:
@@ -602,14 +678,21 @@ def send_analysis_email(probability_results=None, fx_results=None, gold_results=
                             fx_images.append(img)
                         elif "gold_price" in img:
                             gold_images.append(img)
+                        elif "fibonacci" in img:
+                            fabo_images.append(img)
 
-                    # 选择最新的图片（按文件名排序，选择最后一个）
+                    # 选择最新的图片（按文件名排序）
                     if fx_images:
                         fx_images.sort()
                         main_images.append(fx_images[-1])
                     if gold_images:
                         gold_images.sort()
                         main_images.append(gold_images[-1])
+                    if fabo_images:
+                        fabo_images.sort()
+                        # 添加所有斐波那契图片（压力位和支撑位）
+                        for img in fabo_images:
+                            main_images.append(img)
                     if daily_images:
                         daily_images.sort()
                         main_images.append(daily_images[-1])
@@ -622,20 +705,20 @@ def send_analysis_email(probability_results=None, fx_results=None, gold_results=
                             f"发送带 {len(main_images)} 个嵌入图片的邮件给: {recipient}"
                         )
                         # 生成包含图片和概率分析结果的HTML邮件正文
-                        html_body = generate_html_email_body(main_images, probability_results, fx_results, gold_results)
+                        html_body = generate_html_email_body(main_images, probability_results, fx_results, gold_results, fabo_results)
                         # 发送带嵌入图片的HTML邮件
                         email_sender.send_email_with_embedded_images(
                             recipient, subject, html_body, main_images
                         )
                     else:
                         # 发送普通HTML邮件
-                        html_body = generate_html_email_body(None, probability_results, fx_results, gold_results)
+                        html_body = generate_html_email_body(None, probability_results, fx_results, gold_results, fabo_results)
                         email_sender.send_email(
                             recipient, subject, html_body, is_html=True
                         )
                 else:
                     # 发送普通HTML邮件
-                    html_body = generate_html_email_body(None, probability_results, fx_results, gold_results)
+                    html_body = generate_html_email_body(None, probability_results, fx_results, gold_results, fabo_results)
                     email_sender.send_email(recipient, subject, html_body, is_html=True)
 
                 logging.info(f"成功发送邮件给: {recipient}")

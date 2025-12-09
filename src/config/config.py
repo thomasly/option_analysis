@@ -122,10 +122,15 @@ class FibonacciConfig:
     # Fibonacci levels configuration
     enable_fibonacci: bool = True
     
-    # Fixed high and low points for harmonic analysis
-    high_point: float = 3576.12
-    low_point: float = 1482.98
-    trend: str = "down"  # "up" or "down"
+    # Fibonacci resistance levels configuration (压力位)
+    resistance_high: float = 3576.12
+    resistance_low: float = 1482.98
+    resistance_trend: str = "down"  # "up" or "down"
+    
+    # Fibonacci support levels configuration (支撑位)
+    support_low: float = 1756.64
+    support_high: float = 3322.44
+    support_trend: str = "up"  # "up" or "down"
     
     # Fibonacci ratios
     fib_ratios: List[float] = field(

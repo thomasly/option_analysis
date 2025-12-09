@@ -7,6 +7,7 @@ from .harmonic_analyzer import HarmonicAnalyzer
 from .probability_analyzer import ProbabilityAnalyzer
 from .fx_analyzer import FxAnalyzer
 from .gold_analyzer import GoldAnalyzer
+from .fabo_analyzer import FaboAnalyzer
 
 __all__ = [
     "DataFetcher",
@@ -14,4 +15,5 @@ __all__ = [
     "ProbabilityAnalyzer",
     "FxAnalyzer",
     "GoldAnalyzer",
+    "FaboAnalyzer",
 ]
