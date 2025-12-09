@@ -14,6 +14,7 @@ from scipy.optimize import curve_fit
 from scipy.stats import percentileofscore
 
 from .data_fetcher import DataFetcher
+from src.config.config import AnalysisConfig
 
 # from .font_config import setup_chinese_font
 
@@ -26,6 +27,7 @@ class HarmonicAnalyzer:
         stock_code="399006.SZ",
         years=15,
         output_dir="analysis_results",
+        config=None,
     ):
         """
         初始化谐波分析器
@@ -35,6 +37,7 @@ class HarmonicAnalyzer:
         years: 分析年数
         num_harmonics: 谐波函数数量
         output_dir: 输出目录
+        config: 分析配置
         """
         self.stock_code = stock_code
         self.years = years
@@ -42,6 +45,7 @@ class HarmonicAnalyzer:
         self.data_fetcher = DataFetcher()
         self.weekly_p0 = [2, 0.5, 500, 0.02, np.pi, 1000]
         self.daily_p0 = [0.43, 0.1, 1000, 0.003, np.pi / 3 * 2, 1084]  # 拟合初始值
+        self.config = config or AnalysisConfig()
 
         # 创建输出目录
         os.makedirs(output_dir, exist_ok=True)
@@ -97,6 +101,79 @@ class HarmonicAnalyzer:
             },
         }
 
+    def _calculate_fibonacci_levels(self, high, low, trend):
+        """
+        计算斐波那契水平
+        
+        参数:
+        high: 高点价格
+        low: 低点价格
+        trend: 趋势方向 ("up" 或 "down")
+        
+        返回:
+        dict: 斐波那契水平字典
+        """
+        price_range = high - low
+        fib_ratios = self.config.fibonacci.fib_ratios
+        
+        fib_levels = {}
+        if trend == "down":
+            # 下降趋势：计算反弹水平
+            for ratio in fib_ratios:
+                fib_levels[f"{ratio:.3f}"] = low + ratio * price_range
+            # 添加0%和100%水平
+            fib_levels["0.000"] = low
+            fib_levels["1.000"] = high
+        else:
+            # 上升趋势：计算回撤水平
+            for ratio in fib_ratios:
+                fib_levels[f"{ratio:.3f}"] = high - ratio * price_range
+            # 添加0%和100%水平
+            fib_levels["0.000"] = high
+            fib_levels["1.000"] = low
+        
+        return fib_levels
+    
+    def _plot_fibonacci_levels(self, ax, high, low, trend):
+        """
+        在图表上绘制斐波那契水平
+        
+        参数:
+        ax: 图表轴对象
+        high: 高点价格
+        low: 低点价格
+        trend: 趋势方向
+        """
+        fib_levels = self._calculate_fibonacci_levels(high, low, trend)
+        
+        # 定义颜色映射
+        colors = {
+            "0.000": "red",
+            "0.236": "orange",
+            "0.382": "black",
+            "0.500": "green",
+            "0.618": "blue",
+            "0.786": "indigo",
+            "1.000": "violet"
+        }
+        
+        # 绘制斐波那契线
+        for ratio, level in sorted(fib_levels.items(), key=lambda x: x[1], reverse=(trend == "up")):
+            color = colors.get(ratio, "gray")
+            ax.axhline(y=level, color=color, linestyle="--", alpha=0.7, linewidth=1)
+            
+            # 添加标签
+            label = f"Fib {ratio}"
+            ax.text(
+                ax.get_xlim()[1] + 0.01,  # 图表右侧
+                level,
+                label,
+                color=color,
+                verticalalignment="center",
+                fontsize=8,
+                rotation=0
+            )
+    
     def _plot_harmonic_fit(self, params, df, offset=100, freq="D"):
         """绘制谐波拟合结果"""
 
@@ -114,6 +191,14 @@ class HarmonicAnalyzer:
         # 子图1：完整拟合结果
         axes[0].plot(dates, y, label="Close prices")
         axes[0].plot(full_dates, y1, label="fit")
+        
+        # 绘制斐波那契水平
+        if self.config.fibonacci.enable_fibonacci:
+            high = self.config.fibonacci.high_point
+            low = self.config.fibonacci.low_point
+            trend = self.config.fibonacci.trend
+            self._plot_fibonacci_levels(axes[0], high, low, trend)
+        
         axes[0].legend()
         axes[0].xaxis.set_major_locator(mdates.YearLocator(1))
         axes[0].xaxis.set_major_formatter(mdates.DateFormatter("%Y"))

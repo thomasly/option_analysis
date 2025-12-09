@@ -116,6 +116,24 @@ class AlexNetConfig:
 
 
 @dataclass
+class FibonacciConfig:
+    """Fibonacci analysis configuration"""
+    
+    # Fibonacci levels configuration
+    enable_fibonacci: bool = True
+    
+    # Fixed high and low points for harmonic analysis
+    high_point: float = 3576.12
+    low_point: float = 1482.98
+    trend: str = "down"  # "up" or "down"
+    
+    # Fibonacci ratios
+    fib_ratios: List[float] = field(
+        default_factory=lambda: [0.236, 0.382, 0.5, 0.618, 0.786]
+    )
+
+
+@dataclass
 class AnalysisConfig:
     """Main configuration for analysis modules"""
 
@@ -124,6 +142,7 @@ class AnalysisConfig:
     correlation: CorrelationConfig = field(default_factory=CorrelationConfig)
     alexnet: AlexNetConfig = field(default_factory=AlexNetConfig)
     harmonic: HarmonicConfig = field(default_factory=HarmonicConfig)
+    fibonacci: FibonacciConfig = field(default_factory=FibonacciConfig)
 
     # Run configuration
     data_dir: str = "data"
