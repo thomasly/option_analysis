@@ -151,11 +151,14 @@ class FaboAnalyzer:
         # 调整布局
         plt.tight_layout()
         
-        # 保存图像
+        # 保存图像到单独的文件夹
         timestamp = datetime.now().strftime("%Y%m%d")
         chart_type_label = "resistance" if chart_type == "resistance" else "support"
+        # 创建fabonacci专用文件夹
+        fabo_output_dir = os.path.join(self.output_dir, "fibonacci")
+        os.makedirs(fabo_output_dir, exist_ok=True)
         output_path = os.path.join(
-            self.output_dir,
+            fabo_output_dir,
             f"{timestamp}_{self.stock_code}_fibonacci_{chart_type_label}_analysis.png",
         )
         fig.savefig(output_path, dpi=200, bbox_inches="tight")

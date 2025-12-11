@@ -44,8 +44,8 @@ def load_email_recipients(recipients_file: str = "email_recipients.json"):
 def get_latest_analysis_images():
     """获取最新的分析结果图片文件"""
     try:
-        # 查找所有PNG图片文件
-        image_patterns = ["analysis_results/**/*.png", "analysis_results/*.png"]
+        # 查找所有PNG图片文件，包括fibonacci子文件夹
+        image_patterns = ["analysis_results/**/*.png", "analysis_results/*.png", "analysis_results/fibonacci/*.png"]
 
         image_files = []
         for pattern in image_patterns:
@@ -689,9 +689,24 @@ def send_analysis_email(probability_results=None, fx_results=None, gold_results=
                         gold_images.sort()
                         main_images.append(gold_images[-1])
                     if fabo_images:
-                        fabo_images.sort()
-                        # 添加所有斐波那契图片（压力位和支撑位）
+                        # 获取最新日期
+                        latest_date = None
+                        latest_images = []
+                        
                         for img in fabo_images:
+                            # 从文件名中提取日期
+                            # 文件名格式：YYYYMMDD_stockcode_fibonacci_type_analysis.png
+                            filename = os.path.basename(img)
+                            date_str = filename.split('_')[0]
+                            
+                            if not latest_date or date_str > latest_date:
+                                latest_date = date_str
+                                latest_images = [img]
+                            elif date_str == latest_date:
+                                latest_images.append(img)
+                        
+                        # 添加最新日期的所有斐波那契图片
+                        for img in latest_images:
                             main_images.append(img)
                     if daily_images:
                         daily_images.sort()
