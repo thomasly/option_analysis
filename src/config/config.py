@@ -48,7 +48,7 @@ class HarmonicConfig:
     default_stock_codes: List[str] = field(default_factory=lambda: ["399006.SZ"])
 
     # FFT analysis parameters
-    analysis_years: int = int(os.getenv("FFT_ANALYSIS_YEARS", "15"))
+    analysis_years: int = int(os.getenv("FFT_ANALYSIS_YEARS", "14"))
 
     # Analysis frequencies
     frequencies: List[tuple] = field(

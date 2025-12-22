@@ -24,7 +24,7 @@ class HarmonicAnalyzer:
     def __init__(
         self,
         stock_code="399006.SZ",
-        years=15,
+        years=14,
         output_dir="analysis_results",
     ):
         """
@@ -41,7 +41,7 @@ class HarmonicAnalyzer:
         self.output_dir = output_dir
         self.data_fetcher = DataFetcher()
         self.weekly_p0 = [2, 0.5, 500, 0.02, np.pi, 1000]
-        self.daily_p0 = [0.43, 0.1, 1000, 0.003, np.pi / 3 * 2, 1084]  # 拟合初始值
+        self.daily_p0 = [0.44, -0.06, -592.09, 0.0045, 0.43, 1303.89]  # 拟合初始值
 
         # 创建输出目录
         os.makedirs(output_dir, exist_ok=True)
